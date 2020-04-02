@@ -31,7 +31,7 @@ resource "azurerm_subnet" "subnet" {
 resource "azurerm_public_ip" "publicip" {
     name                = "${var.resource_prefix}TFPublicIP"
     location            = var.location
-    resource_group_name = azurerm_resource_group.tutorial_1.name
+    resource_group_name = azurerm_resource_group.rg_tutorial_1.name
     allocation_method   = "Static"
 } 
 
