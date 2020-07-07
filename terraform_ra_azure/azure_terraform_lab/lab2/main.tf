@@ -10,7 +10,7 @@ provider "azurerm" {
 }
 
 resource "random_string" "webapprnd" {
-    length  = 8
+
     lower   = true
     number  = true
     upper   = false
