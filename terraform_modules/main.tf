@@ -1,18 +1,24 @@
+variable "subscription_id" {}
+
 variable "vm_name" {
   description = "VM name, up to 15 characters, numbers and letters, no special characters except hyphen -"
+  default = "myVmLinux"
 }
 
 variable "admin_username"{
   description = "Admin user name for the virtual machine"
+  default = "admin"
 }
 
 variable "location" {
   description = "Azure region"
+  default = "westeurpe"
 }
 
 variable "environment" {
   default = "dev"
 }
+
 variable "vm_size" {
   default = {
     "dev"  = "Standard_F2s_v2"
@@ -22,6 +28,12 @@ variable "vm_size" {
 }
 # end vars
 
+provider "azurerm" {
+    version = "=2.0.0"
+    subscription_id = var.subscription_id
+    features {}
+}
+  
 # Create a resource group
 resource "azurerm_resource_group" "rg" {
   name     = "myTFModuleGroup"
@@ -31,7 +43,7 @@ resource "azurerm_resource_group" "rg" {
 # Use the network module to create a vnet and subnet
 module "network" {
   source              = "Azure/network/azurerm"
-  version             = "~> 2.0"
+  version             = "~> 3.0.0"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = "10.0.0.0/16"
@@ -42,8 +54,8 @@ module "network" {
 # Use the compute module to create the VM
 module "compute" {
   source         = "Azure/compute/azurerm"
-  version        = "~> 1.3"
-  location       = var.location
+  version        = "~> 3.0.0"
+  # location       = var.location
   resource_group_name = azurerm_resource_group.rg.name
   vm_hostname    = var.vm_name
   vnet_subnet_id = element(module.network.vnet_subnets, 0)

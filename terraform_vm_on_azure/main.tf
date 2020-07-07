@@ -1,25 +1,27 @@
 
 # Configure the Microsoft Azure Provider.
 provider "azurerm" {
-version = "~>1.44.0"
-subscription_id = "0ad5ac4a-b031-42a2-9fe5-5feb754f1822"   
+    version = "~>1.44.0"
+        subscription_id = var.subscription_id
 }
 # Create a resource group
 resource "azurerm_resource_group" "rg" {
-    name     = "myTFResourceGroup"
-    location = "westeurope"
+    name     = "${var.prefix}TFResourceGroup"
+    location = var.location
+    tags     = var.tags
 }
 # Create virtual network
 resource "azurerm_virtual_network" "vnet" {
-    name                = "myTFVnet"
+    name                = "${var.prefix}TFVnet"
     address_space       = ["10.0.0.0/16"]
-    location            = "westeurope"
-    resource_group_name = "azurerm_resource_group.rg.name"
+    location            = var.location
+    resource_group_name = azurerm_resource_group.rg.name
+    tags                = var.tags
 }
 
 # Create subnet
 resource "azurerm_subnet" "subnet" {
-    name                 = "myTFSubnet"
+    name                 = "${var.prefix}TFSubnet"
     resource_group_name  = azurerm_resource_group.rg.name
     virtual_network_name = azurerm_virtual_network.vnet.name
     address_prefix       = "10.0.1.0/24"
@@ -27,17 +29,19 @@ resource "azurerm_subnet" "subnet" {
 
 # Create public IP
 resource "azurerm_public_ip" "publicip" {
-    name                         = "myTFPublicIP"
-    location                     = "westeurope"
+    name                         = "${var.prefix}TFPublicIP"
+    location                     = var.location
     resource_group_name          = azurerm_resource_group.rg.name
-    public_ip_address_allocation = "dynamic"
+    allocation_method            = "dynamic"
+    tags                         = var.tags
 }
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "nsg" {
-    name                = "myTFNSG"
-    location            = "westeurope"
+    name                = "${var.prefix}myTFNSG"
+    location            = var.location
     resource_group_name = azurerm_resource_group.rg.name
+    tags                = var.tags
 
     security_rule {
         name                       = "SSH"
@@ -54,13 +58,14 @@ resource "azurerm_network_security_group" "nsg" {
 
 # Create network interface
 resource "azurerm_network_interface" "nic" {
-    name                      = "myNIC"
-    location                  = "westeurope"
+    name                      = "${var.prefix}NIC"
+    location                  = var.location
     resource_group_name       = azurerm_resource_group.rg.name
     network_security_group_id = azurerm_network_security_group.nsg.id
+    tags                      = var.tags
 
     ip_configuration {
-        name                          = "myNICConfg"
+        name                          = "${var.prefix}NICConfg"
         subnet_id                     = azurerm_subnet.subnet.id
         private_ip_address_allocation = "dynamic"
         public_ip_address_id          = azurerm_public_ip.publicip.id
@@ -69,14 +74,15 @@ resource "azurerm_network_interface" "nic" {
 
 # Create a Linux virtual machine
 resource "azurerm_virtual_machine" "vm" {
-    name                  = "myTFVM"
-    location              = "westeurope"
+    name                  = "${var.prefix}TFVM"
+    location              = var.location
     resource_group_name   = azurerm_resource_group.rg.name
     network_interface_ids = [azurerm_network_interface.nic.id]
-    vm_size              = "Standard_F2s_v2"
+    vm_size               = "Standard_F2s_v2"
+    tags                  = var.tags
 
     storage_os_disk {
-        name              = "myOsDisk"
+        name              = "${var.prefix}OsDisk"
         caching           = "ReadWrite"
         create_option     = "FromImage"
         managed_disk_type = "Standard_LRS"
@@ -85,18 +91,22 @@ resource "azurerm_virtual_machine" "vm" {
     storage_image_reference {
         publisher = "OpenLogic"
         offer     = "CentOS"
-        sku       = "7.5"
+        sku       = lookup(var.sku, var.location)
         version   = "latest"
     }
 
     os_profile {
-        computer_name  = "myTFVM"
-        admin_username = "plankton"
-        admin_password = "Password1234!"
+        computer_name  = "${var.prefix}TFVM"
+        admin_username = var.admin_username
+        admin_password = var.admin_password
     }
 
     os_profile_linux_config {
         disable_password_authentication = false
     }
 
+}
+
+output "ip" {
+  value = azurerm_public_ip.publicip.ip_address
 }
