@@ -1,4 +1,4 @@
-tovariable "name" {
+variable "name" {
     default = "terraform-lab2"
 }
 
