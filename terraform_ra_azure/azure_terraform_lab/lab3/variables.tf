@@ -3,7 +3,7 @@ variable "name" {
 }
 
 variable "loc" {
-    default = "West Europe"
+    default = "westeurope"
 }
 
 variable "subscription" {
