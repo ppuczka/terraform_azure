@@ -21,3 +21,7 @@ variable "tags" {
         source     = "citadel"
     }
 }
+
+variable "webapplocs" {
+    default = []
+}
