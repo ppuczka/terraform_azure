@@ -5,10 +5,10 @@ provider "azurerm" {
 # Create a resource group if it doesn't exist
 resource "azurerm_resource_group" "myterraformgroup" {
     name     = "myResourceGroup"
-    location = "eastus"
+    location = var.location
 
     tags = {
-        environment = "Terraform Demo"
+        environment =  var.environment
     }
 }
 
@@ -16,11 +16,11 @@ resource "azurerm_resource_group" "myterraformgroup" {
 resource "azurerm_virtual_network" "myterraformnetwork" {
     name                = "myVnet"
     address_space       = ["10.0.0.0/16"]
-    location            = "eastus"
+    location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.environment
     }
 }
 
@@ -35,7 +35,7 @@ resource "azurerm_subnet" "myterraformsubnet" {
 # Create public IPs
 resource "azurerm_public_ip" "myterraformpublicip" {
     name                         = "myPublicIP"
-    location                     = "eastus"
+    location                     = var.location
     resource_group_name          = azurerm_resource_group.myterraformgroup.name
     allocation_method            = "Dynamic"
 
@@ -47,7 +47,7 @@ resource "azurerm_public_ip" "myterraformpublicip" {
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "myterraformnsg" {
     name                = "myNetworkSecurityGroup"
-    location            = "eastus"
+    location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
     
     security_rule {
@@ -63,14 +63,14 @@ resource "azurerm_network_security_group" "myterraformnsg" {
     }
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.environment
     }
 }
 
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
     name                      = "myNIC"
-    location                  = "eastus"
+    location                  = var.location
     resource_group_name       = azurerm_resource_group.myterraformgroup.name
 
     ip_configuration {
@@ -81,7 +81,7 @@ resource "azurerm_network_interface" "myterraformnic" {
     }
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.environment
     }
 }
 
@@ -108,12 +108,12 @@ resource "random_id" "randomId" {
 resource "azurerm_storage_account" "mystorageaccount" {
     name                        = "diag${random_id.randomId.hex}"
     resource_group_name         = azurerm_resource_group.myterraformgroup.name
-    location                    = "eastus"
+    location                    = var.location
     account_tier                = "Standard"
     account_replication_type    = "LRS"
 
     tags = {
-        environment = "Terraform Demo"
+        environment = var.environment
     }
 }
 
@@ -122,7 +122,7 @@ resource "tls_private_key" "example_ssh" {
   algorithm = "RSA"
   rsa_bits = 4096
 }
-output "tls_private_key" { value = "${tls_private_key.example_ssh.private_key_pem}" }
+output "tls_private_key" { value = tls_private_key.example_ssh.private_key_pem }
 
 data "template_file" "docker" {
   template = file("//Users/ppuczka/Desktop/Projects_v2/terraform_azure/terraform_ra_azure/custom_data/cloud-config.yml")
@@ -130,8 +130,8 @@ data "template_file" "docker" {
 
 # Create virtual machine
 resource "azurerm_linux_virtual_machine" "myterraformvm" {
-    name                  = "myVM"
-    location              = "eastus"
+    name                  = "jenkinsVm"
+    location              = var.location
     resource_group_name   = azurerm_resource_group.myterraformgroup.name
     network_interface_ids = [azurerm_network_interface.myterraformnic.id]
     size                  = "Standard_DS1_v2"
@@ -146,7 +146,7 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
       type        = "ssh"
       host        = azurerm_public_ip.myterraformpublicip.ip_address
       user        = "azureuser"
-      # private_key = file("//Users/ppuczka/Desktop/Projects_v2/terraform_azure/terraform_ra_azure/azure_pk")
+      private_key = tls_private_key.example_ssh.private_key_pem
     }
 
     source_image_reference {
@@ -167,9 +167,7 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
 
     provisioner "remote-exec" {
       inline = [
-        "sudo docker pull jenkins",
         "mkdir /przemek"
-        
       ]
     }
     
