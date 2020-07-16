@@ -125,7 +125,7 @@ resource "tls_private_key" "example_ssh" {
 output "tls_private_key" { value = tls_private_key.example_ssh.private_key_pem }
 
 data "template_file" "docker" {
-  template = file("//Users/ppuczka/Desktop/Projects_v2/terraform_azure/terraform_ra_azure/custom_data/cloud-config.yml")
+  template = file("/custom_data/cloud-config.yml")
   }
 
 # Create virtual machine
