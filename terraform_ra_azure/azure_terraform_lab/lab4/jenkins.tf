@@ -4,7 +4,7 @@ provider "azurerm" {
 }
 # Create a resource group if it doesn't exist
 resource "azurerm_resource_group" "myterraformgroup" {
-    name     = "myResourceGroup"
+    name     = "devOpsLab"
     location = var.location
 
     tags = {
@@ -14,7 +14,7 @@ resource "azurerm_resource_group" "myterraformgroup" {
 
 # Create virtual network
 resource "azurerm_virtual_network" "myterraformnetwork" {
-    name                = "myVnet"
+    name                = "devOpsLabVnet"
     address_space       = ["10.0.0.0/16"]
     location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
@@ -26,7 +26,7 @@ resource "azurerm_virtual_network" "myterraformnetwork" {
 
 # Create subnet
 resource "azurerm_subnet" "myterraformsubnet" {
-    name                 = "mySubnet"
+    name                 = "devOpsLabSubnet"
     resource_group_name  = azurerm_resource_group.myterraformgroup.name
     virtual_network_name = azurerm_virtual_network.myterraformnetwork.name
     address_prefixes       = ["10.0.1.0/24"]
@@ -34,7 +34,7 @@ resource "azurerm_subnet" "myterraformsubnet" {
 
 # Create public IPs
 resource "azurerm_public_ip" "myterraformpublicip" {
-    name                         = "myPublicIP"
+    name                         = "devOpsLabPublicIP"
     location                     = var.location
     resource_group_name          = azurerm_resource_group.myterraformgroup.name
     allocation_method            = "Dynamic"
@@ -46,7 +46,7 @@ resource "azurerm_public_ip" "myterraformpublicip" {
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "myterraformnsg" {
-    name                = "myNetworkSecurityGroup"
+    name                = "devOpsLabNetworkSecurityGroup"
     location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
     
@@ -69,12 +69,12 @@ resource "azurerm_network_security_group" "myterraformnsg" {
 
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
-    name                      = "myNIC"
+    name                      = "devOpsLabNIC"
     location                  = var.location
     resource_group_name       = azurerm_resource_group.myterraformgroup.name
 
     ip_configuration {
-        name                          = "myNicConfiguration"
+        name                          = "devOpsLabNicConfiguration"
         subnet_id                     = azurerm_subnet.myterraformsubnet.id
         private_ip_address_allocation = "Dynamic"
         public_ip_address_id          = azurerm_public_ip.myterraformpublicip.id
@@ -142,12 +142,6 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
       storage_account_type = "Premium_LRS"
     }
 
-    connection {
-      type        = "ssh"
-      host        = azurerm_public_ip.myterraformpublicip.ip_address
-      user        = "azureuser"
-      private_key = tls_private_key.example_ssh.private_key_pem
-    }
 
     source_image_reference {
       publisher = "Canonical"
@@ -157,19 +151,27 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     }
   
     admin_ssh_key {
-      username       = "azureuser"
-      public_key     = tls_private_key.example_ssh.public_key_openssh
+        username       = "azureuser"
+        public_key     = tls_private_key.example_ssh.public_key_openssh
     }
 
     boot_diagnostics {
       storage_account_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
     }
 
-    provisioner "remote-exec" {
-      inline = [
-        "mkdir /przemek"
-      ]
-    }
+    # provisioner "remote-exec" {
+      
+    #   connection {
+    #   type        = "ssh"
+    #   host        = azurerm_public_ip.myterraformpublicip.ip_address
+    #   user        = "azureuser"
+    #   private_key = file("ssh_key.pem")
+    # }
+
+    #   inline = [
+    #     "mkdir /przemek"
+    #   ]
+    # }
     
     computer_name  = "myvm"
     admin_username = "azureuser"
