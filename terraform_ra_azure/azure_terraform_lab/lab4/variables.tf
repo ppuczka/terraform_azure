@@ -1,19 +1,19 @@
 variable "name" {
-    default = "terraform-lab4"
+  default = "terraform-lab4"
 }
 
 variable "location" {
-    default = "West Europe"
+  default = "West Europe"
 }
 
 variable "environment" {
-    default = "Terraform Lab"
+  default = "Terraform Lab"
 }
 
 variable "subscription" {
-    description = "Azure secret subscription id"
+  description = "Azure secret subscription id"
 }
 
 variable "tenant" {
-    description = "Azure secret tenant id"
+  description = "Azure secret tenant id"
 }

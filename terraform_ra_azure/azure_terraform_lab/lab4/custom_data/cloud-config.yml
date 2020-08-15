@@ -5,6 +5,3 @@ packages:
     - docker.io
     - docker-compose
     - git
-run_command:
-    - sudo docker pull jenkins
-    - mkdir /var/my_dir
