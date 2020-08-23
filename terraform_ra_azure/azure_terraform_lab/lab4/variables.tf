@@ -17,3 +17,7 @@ variable "subscription" {
 variable "tenant" {
   description = "Azure secret tenant id"
 }
+
+variable "ARM_ACCES_KEY" {
+  description = "Azure storage container key"
+}

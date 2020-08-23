@@ -1,7 +1,20 @@
+terraform {
+
+  backend "azurerm" {
+    resource_group_name  = "terraformstate"
+    storage_account_name = "tfstate8080"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
+
+    # access_key = "ZOgpJ5bVdXVgKfQA/1s32vN9sT/c/fYAPR+i7XF12tqxW0MTqVC8ITbxaGEpFU1pIE2WvUsUCYLtZ3CDHKgOuw=="
+
+  }
+}
 provider "azurerm" {
   version = "~>2.0"
   features {}
 }
+
 # Create a resource group if it doesn't exist
 resource "azurerm_resource_group" "myterraformgroup" {
   name     = "devOpsLab"
@@ -56,30 +69,30 @@ resource "azurerm_network_security_group" "myterraformnsg" {
 }
 
 resource "azurerm_network_security_rule" "ssh" {
-  name                       = "SSH"
-  priority                   = 1001
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "22"
-  source_address_prefix      = "*"
-  destination_address_prefix = "*"
-  resource_group_name = azurerm_resource_group.myterraformgroup.name
+  name                        = "SSH"
+  priority                    = 1001
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "22"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.myterraformgroup.name
   network_security_group_name = azurerm_network_security_group.myterraformnsg.name
 }
 
 resource "azurerm_network_security_rule" "jenkins" {
-  name                       = "jenkins"
-  priority                   = 1100
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "8080"
-  source_address_prefix      = "*"
-  destination_address_prefix = "*"
-  resource_group_name = azurerm_resource_group.myterraformgroup.name
+  name                        = "jenkins"
+  priority                    = 1100
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "8080"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.myterraformgroup.name
   network_security_group_name = azurerm_network_security_group.myterraformnsg.name
 }
 
@@ -191,14 +204,11 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     }
 
     inline = [
-      "echo creating folders:",
-      "sudo mkdir /var/tfprzemek",
       "echo starting docker",
-      "sudo systemctl start docker",
+      # "sudo dockerd",
       "echo pulling jenkins container",
-      "sudo docker pull jenkins/jenkins",
-      "sudo docker run jenkins/jenkins"
-
+      "sleep 20;sudo docker pull jenkins/jenkins",
+      "sleep 20;sudo docker run -p 8080:8080 -d jenkins/jenkins"
     ]
   }
 
