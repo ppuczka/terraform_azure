@@ -6,8 +6,6 @@ terraform {
     container_name       = "tfstate"
     key                  = "terraform.tfstate"
 
-    # access_key = "ZOgpJ5bVdXVgKfQA/1s32vN9sT/c/fYAPR+i7XF12tqxW0MTqVC8ITbxaGEpFU1pIE2WvUsUCYLtZ3CDHKgOuw=="
-
   }
 }
 provider "azurerm" {
