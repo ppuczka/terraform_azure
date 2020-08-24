@@ -94,8 +94,6 @@ resource "azurerm_network_security_rule" "jenkins" {
   network_security_group_name = azurerm_network_security_group.myterraformnsg.name
 }
 
-
-
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
   name                = "devOpsLabNIC"
@@ -157,6 +155,22 @@ data "template_file" "docker" {
   template = file("custom_data/cloud-config.yml")
 }
 
+# Obtain SSL certificate from azure vault 
+
+data "azurerm_key_vault" "ppuczka_vault" {
+  name                = "ppuczka-vault"
+  resource_group_name = "vault"
+}
+
+data "azurerm_key_vault_certificate" "jenkins_ssl_key" {
+  name         = "jenkins-keystorev2"
+  key_vault_id = data.azurerm_key_vault.ppuczka_vault.id
+}
+
+output "certificate_thumbprint" {
+  value = data.azurerm_key_vault_certificate.jenkins_ssl_key
+}
+
 # Create virtual machine
 resource "azurerm_linux_virtual_machine" "myterraformvm" {
   name                            = "jenkinsVm"
@@ -175,7 +189,6 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     storage_account_type = "Premium_LRS"
   }
 
-
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
@@ -192,18 +205,23 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     storage_account_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
   }
 
+  provisioner "file" {
+    content     = "data.azurerm_key_vault_certificate.jenkins_ssl_key"
+    destination = "/tmp/file.log"
+  }
+
   provisioner "remote-exec" {
 
     connection {
       type        = "ssh"
-      host        = azurerm_public_ip.myterraformpublicip.ip_address
+      host        = "azurerm_public_ip.myterraformpublicip.ip_address"
       user        = "azureuser"
       private_key = tls_private_key.example_ssh.private_key_pem
     }
 
     inline = [
       "echo starting docker",
-      # "sudo dockerd",
+      #"sudo dockerd",
       "echo pulling jenkins container",
       "sleep 20;sudo docker pull jenkins/jenkins",
       "sleep 20;sudo docker run -p 8080:8080 -d jenkins/jenkins"
