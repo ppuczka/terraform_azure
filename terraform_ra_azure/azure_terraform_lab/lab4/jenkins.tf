@@ -9,7 +9,7 @@ terraform {
   }
 }
 provider "azurerm" {
-  version = "~>2.0"
+  version = "=2.24.0"
   features {}
 }
 
@@ -80,14 +80,14 @@ resource "azurerm_network_security_rule" "ssh" {
   network_security_group_name = azurerm_network_security_group.myterraformnsg.name
 }
 
-resource "azurerm_network_security_rule" "jenkins" {
+resource "azurerm_network_security_rule" "jenkins_ssl" {
   name                        = "jenkins"
   priority                    = 1100
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "8080"
+  destination_port_range      = "443"
   source_address_prefix       = "*"
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.myterraformgroup.name
@@ -157,19 +157,19 @@ data "template_file" "docker" {
 
 # Obtain SSL certificate from azure vault 
 
-data "azurerm_key_vault" "ppuczka_vault" {
-  name                = "ppuczka-vault"
-  resource_group_name = "vault"
-}
+# data "azurerm_key_vault" "ppuczka_vault" {
+#   name                = "ppuczka-vault"
+#   resource_group_name = "vault"
+# }
 
-data "azurerm_key_vault_certificate" "jenkins_ssl_key" {
-  name         = "jenkins-keystorev2"
-  key_vault_id = data.azurerm_key_vault.ppuczka_vault.id
-}
+# data "azurerm_key_vault_secret" "jenkins_ssl_key" {
+#   name         = "jenkins-keystorev2"
+#   key_vault_id = data.azurerm_key_vault.ppuczka_vault.id
+# }
 
-output "certificate_thumbprint" {
-  value = data.azurerm_key_vault_certificate.jenkins_ssl_key
-}
+# output "certificate_ssl" {
+#   value = data.azurerm_key_vault_secret.jenkins_ssl_key
+# }
 
 # Create virtual machine
 resource "azurerm_linux_virtual_machine" "myterraformvm" {
@@ -204,17 +204,40 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
   boot_diagnostics {
     storage_account_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
   }
-
-  provisioner "file" {
-    content     = "data.azurerm_key_vault_certificate.jenkins_ssl_key"
-    destination = "/tmp/file.log"
-  }
-
+  
   provisioner "remote-exec" {
 
     connection {
       type        = "ssh"
-      host        = "azurerm_public_ip.myterraformpublicip.ip_address"
+      host        = azurerm_public_ip.myterraformpublicip.ip_address
+      user        = "azureuser"
+      private_key = tls_private_key.example_ssh.private_key_pem
+    }
+
+    inline = [
+      "sudo mkdir /home/azureuser/jenkins_home",
+      "sudo mkdir /home/azureuser/jenkins_home/keys/"
+    ]
+  }
+
+  provisioner "file" {
+    connection {
+      type        = "ssh"
+      host        = azurerm_public_ip.myterraformpublicip.ip_address
+      user        = "azureuser" 
+      private_key = tls_private_key.example_ssh.private_key_pem
+    }
+
+    source     = "jenkins_keystore.jks"
+    destination = "/tmp/jenkins_keystore.jks"
+  }
+
+
+   provisioner "remote-exec" {
+
+    connection {
+      type        = "ssh"
+      host        = azurerm_public_ip.myterraformpublicip.ip_address
       user        = "azureuser"
       private_key = tls_private_key.example_ssh.private_key_pem
     }
@@ -222,9 +245,12 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     inline = [
       "echo starting docker",
       #"sudo dockerd",
+      "sudo cp /tmp/jenkins_keystore.jks /home/azureuser/jenkins_home/keys",
       "echo pulling jenkins container",
       "sleep 20;sudo docker pull jenkins/jenkins",
-      "sleep 20;sudo docker run -p 8080:8080 -d jenkins/jenkins"
+      "sleep 10,sudo chown -R 1000:1000 /home/azureuser/jenkins_home", 
+      "sleep 20;sudo docker run -v /home/azureuser/jenkins_home:/var/jenkins_home  -p 443:8443 -d jenkins/jenkins --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/var/jenkins_home/keys/jenkins_keystore.jks --httpsKeyStorePassword=Myszaa89"
+        # $ docker run -v /home/ubuntu/johndoe/jenkins:/var/jenkins_home -p 443:8443 jenkins --httpPort=-1 --httpsPort=8443 --httpsKeyStore=/var/jenkins_home/jenkins_keystore.jks --httpsKeyStorePassword=<keystore password>
     ]
   }
 
